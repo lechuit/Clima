@@ -2,20 +2,25 @@ const axios = require('axios');
 
 class Busquedas {
 
-    historial = ['Tegucigalpa','Madrir','San Jose'];
-
     constructor() {
         //TODO: leer DB si existe
     }
 
     get paramsMapbox(){
         return {
-            'access_token' : '',
+            'access_token' : process.env.MAPBOX_KEY,
             'limit' : 5,
             'language' : 'es'
         }
     }
 
+    get paramsWeatherMaps(){
+        return{
+            'appid' : process.env.OPENWEATHER_KEY,
+            'lang'  : 'sp',
+            'units' : 'metric',
+        }
+    }
 
     async ciudad(lugar = ''){
         try {
@@ -26,16 +31,40 @@ class Busquedas {
             });
 
             const resp = await instance.get();
-            
-            //const resp = await axios.get('https://api.mapbox.com/geocoding/v5/mapbox.places/domingo%20santa%20cruz%2C%20la%20pintana.json?access_token=pk.eyJ1IjoibWVnYWtpZCIsImEiOiJja29qZjhvNHkxYzBhMm9wMXc2YjBrdDZvIn0.r1139w_2aXafrlZhhbyZlA&limit=5&language=es');
-            console.log(resp.data);
-
-            return []; // retornar los lugares
+            return resp.data.features.map( lugar => ({
+                id: lugar.id,
+                nombre: lugar.place_name,
+                lng: lugar.center[0],
+                lat: lugar.center[1],
+            }));
         }catch (error){
             return [];
         }
     }
 
+    async climaLugar(lat, lon){
+        try{
+            //Instance axios.create()
+            const instance = axios.create({
+                baseURL: `https://api.openweathermap.org/data/2.5/weather`,
+                params: {...this.paramsWeatherMaps, lat, lon}
+            });
+
+            //resp.data
+            const resp = await instance.get();
+            const {weather, main} = resp.data;
+
+            return{
+                desc: weather[0].description,
+                min: main.temp_min,
+                max: main.temp_max,
+                temp: main.temp
+            }
+
+        }catch (error){
+            console.log(error);
+        }
+    }
 }
 
 module.exports = Busquedas;
